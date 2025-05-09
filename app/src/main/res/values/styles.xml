@@ -9,4 +9,32 @@
         <item name="android:textSize">16sp</item>
         <item name="android:textColor">#757575</item>
     </style>
+
+    <!-- heading: Pretendard Bold, 32sp -->
+    <style name="HeadingText">
+        <item name="android:fontFamily">@font/pretendard_bold</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
+
+    <!-- label: Pretendard SemiBold, 16sp -->
+    <style name="LabelText">
+        <item name="android:fontFamily">@font/pretendard_semibold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
+
+    <!-- boldlabel: Pretendard Bold, 16sp -->
+    <style name="BoldLabelText">
+        <item name="android:fontFamily">@font/pretendard_bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
+
+    <!-- paragraph: Pretendard Regular, 16sp -->
+    <style name="ParagraphText">
+        <item name="android:fontFamily">@font/pretendard_regular</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
 </resources>

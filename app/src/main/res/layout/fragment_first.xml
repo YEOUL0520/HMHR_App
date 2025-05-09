@@ -27,9 +27,7 @@
             android:layout_marginTop="16dp"
             android:layout_centerHorizontal="true"
             android:text="AJ대학교병원"
-            android:textColor="#222222"
-            android:textStyle="bold"
-            android:textSize="20sp" />
+        />
 
         <!-- 텍스트 타이틀 2 -->
         <TextView
