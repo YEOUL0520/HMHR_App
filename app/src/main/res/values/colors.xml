@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="main">#4758EA</color>
+    <color name="sub">#7280FA</color>
+    <color name="second">#0ED3BC</color>
+    <color name="third">#FCA71D</color>
+    <color name="text">#262626</color>
+    <color name="inactive">#757575</color>
+    <color name="inactive_2">#F5F5F5</color>
+    <color name="maintext">#FFFFFF</color>
+</resources>
