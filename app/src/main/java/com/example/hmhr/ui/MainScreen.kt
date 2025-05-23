@@ -1,5 +1,8 @@
+package com.example.hmhr.ui
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,13 +15,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
-import androidx.compose.foundation.shape.CircleShape
 import com.example.hmhr.R
+import com.example.hmhr.ui.components.BottomNavigationBar
 import com.example.hmhr.ui.theme.*
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -26,25 +29,31 @@ fun MainScreen() {
     var selectedTabIndex by remember { mutableStateOf(1) }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(selectedTabIndex) { selectedTabIndex = it } }
+        topBar = {},
+        bottomBar = {
+            BottomNavigationBar(selectedTabIndex) { selectedTabIndex = it }
+        }
     ) { innerPadding ->
-
         val modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
+            //.padding(innerPadding)
+            .padding(
+                WindowInsets.systemBars
+                    .only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
+                    .asPaddingValues()
+            )
             .padding(horizontal = 16.dp, vertical = 16.dp)
 
         when (selectedTabIndex) {
-            0 -> AttendanceScreen(modifier)
-            1 -> HomeScreenContent(modifier)
-            2 -> ProfileScreen(modifier)
+            0 -> AttendanceScreen()
+            1 -> MainScreenContent(modifier)
+            2 -> ProfileScreen()
         }
     }
 }
 
 @Composable
-fun HomeScreenContent(modifier: Modifier = Modifier) {
-    // 현재 날짜는 고정
+fun MainScreenContent(modifier: Modifier = Modifier) {
     val currentDate = remember {
         val today = LocalDate.now()
         val formatter = DateTimeFormatter.ofPattern("M월 d일")
@@ -64,20 +73,19 @@ fun HomeScreenContent(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.Top,
-    ) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.Top) {
+        //최상단 시스템 안내부
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("출퇴근관리시스템", fontFamily = BoldLabelFont)
-            Text("AJ대학교병원", fontFamily = BoldLabelFont)
+            Text("(주)A4AI", fontFamily = BoldLabelFont) //근로 장소 정보 받아올 곳
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        //근로자 정보란
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,7 +101,31 @@ fun HomeScreenContent(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text("근로자명", fontFamily = LabelFont, fontSize = 20.sp)
-                Text("근로부서명", fontFamily = ParagraphFont)
+                Row{
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .background(color = InactiveColor, shape = CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("부서명", fontFamily = ParagraphFont)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .background(color = InactiveColor, shape = CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("직책", fontFamily = ParagraphFont)
+                    }
+                }
             }
             Box(
                 modifier = Modifier
@@ -107,19 +139,19 @@ fun HomeScreenContent(modifier: Modifier = Modifier) {
             }
         }
 
+        //오늘 날짜
         Spacer(modifier = Modifier.height(16.dp))
-
-        Text(currentDate, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(currentDate, fontSize = 24.sp, fontFamily = BoldLabelFont)
         Spacer(modifier = Modifier.height(8.dp))
 
+        //근무 카드란
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                //.background(color = InactiveColor)
                 .padding(16.dp)
         ) {
+            //좌측 색 상자
             Row {
-                // 왼쪽 8dp 너비 SubColor 박스
                 Box(
                     modifier = Modifier
                         .width(8.dp)
@@ -129,7 +161,7 @@ fun HomeScreenContent(modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.width(14.dp))
 
-                // 나머지 내용
+                //우측 글자
                 Column {
                     Row {
                         Text(
@@ -155,23 +187,24 @@ fun HomeScreenContent(modifier: Modifier = Modifier) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text("09:00 - 18:00", fontSize = 32.sp, fontFamily = BoldLabelFont)
+                    Text("09:00 - 18:00", fontSize = 40.sp, fontFamily = BoldLabelFont)
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                   Row(
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      Box(
+                          modifier = Modifier
                                 .size(8.dp)
                                 .background(color = InactiveColor, shape = CircleShape)
-                        )
+                       )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("근로부서명", fontFamily = ParagraphFont)
-                    }
+                        }
                 }
             }
         }
-
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -212,60 +245,11 @@ fun HomeScreenContent(modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .height(48.dp),
             shape = RoundedCornerShape(10.dp),
-            //colors = ButtonDefaults.buttonColors(containerColor = InactiveColor2)
         ) {
             Text("퇴근 시간 등록하기", color = InactiveColor, fontFamily = BoldLabelFont, fontSize = 16.sp)
         }
     }
 }
-
-@Composable
-fun AttendanceScreen(modifier: Modifier = Modifier) {
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Text("출근부 화면입니다", fontSize = 20.sp)
-    }
-}
-
-@Composable
-fun ProfileScreen(modifier: Modifier = Modifier) {
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Text("개인 정보 화면입니다", fontSize = 20.sp)
-    }
-}
-
-@Composable
-fun BottomNavigationBar(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
-    Column {
-        Divider(color = InactiveColor2, thickness = 1.dp, modifier = Modifier.padding(start = 16.dp, end = 16.dp))  // 구분선
-        NavigationBar(
-            containerColor = Color.Transparent  // 이렇게 파라미터로 넣어야 함
-        ) {
-            NavigationBarItem(
-                selected = selectedIndex == 0,
-                onClick = { onItemSelected(0) },
-                icon = { Image(painter = painterResource(id = R.drawable.calendar_month), contentDescription = "출근부") },
-                label = { Text("출근부", fontFamily = BoldLabelFont, fontSize = 12.sp) }
-            )
-            NavigationBarItem(
-                selected = selectedIndex == 1,
-                onClick = { onItemSelected(1) },
-                icon = { Image(painter = painterResource(id = R.drawable.edit_calendar), contentDescription = "등록") },
-                label = { Text("등록", fontFamily = BoldLabelFont, fontSize = 12.sp) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedTextColor = MainColor
-                )
-            )
-            NavigationBarItem(
-                selected = selectedIndex == 2,
-                onClick = { onItemSelected(2) },
-                icon = { Image(painter = painterResource(id = R.drawable.assignment_ind), contentDescription = "개인") },
-                label = { Text("개인", fontFamily = BoldLabelFont, fontSize = 12.sp) }
-            )
-        }
-    }
-}
-
-
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable
