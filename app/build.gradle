@@ -43,6 +43,7 @@ android {
 
 dependencies {
     def composeBom = platform('androidx.compose:compose-bom:2025.05.00')
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation composeBom
     androidTestImplementation composeBom
 
@@ -75,6 +76,9 @@ dependencies {
     implementation 'androidx.compose.material:material-icons-extended'
     // Optional - Add window size utils
     implementation 'androidx.compose.material3.adaptive:adaptive'
+
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")  // 최신 안정 버전으로 설정
+    implementation "com.google.accompanist:accompanist-systemuicontroller:0.34.0"  // 최신 안정 버전
 
     // Optional - Integration with activities
     implementation 'androidx.activity:activity-compose:1.10.1'

@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -18,92 +19,68 @@ import androidx.compose.ui.unit.*
 import com.example.hmhr.R
 import com.example.hmhr.ui.components.BottomNavigationBar
 import com.example.hmhr.ui.theme.*
+import com.example.hmhr.viewmodel.LoginViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.*
 
 @Composable
-fun AttendanceScreen() {
-    var selectedTabIndex by remember { mutableStateOf(0) }
-
-    Scaffold(
-        bottomBar = { BottomNavigationBar(selectedTabIndex) { selectedTabIndex = it } }
-    ) { innerPadding ->
-        val modifier = Modifier
-            .fillMaxSize()
-            //.padding(innerPadding)
-            .padding(
-                WindowInsets.systemBars
-                    .only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
-                    .asPaddingValues()
-            )
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-
-        when (selectedTabIndex) {
-            0 -> AttendanceScreenContent(modifier)
-            1 -> MainScreen()
-            2 -> ProfileScreen()
-        }
-    }
+fun AttendanceScreen(modifier: Modifier = Modifier, loginViewModel: LoginViewModel) {
+    AttendanceScreenContent(modifier, loginViewModel)
 }
 
 @Composable
-fun AttendanceScreenContent(modifier: Modifier = Modifier) {
+fun AttendanceScreenContent(modifier: Modifier = Modifier, loginViewModel: LoginViewModel) {
+
+    val attendanceInfo by loginViewModel.attendanceInfo.collectAsState()
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
     ) {
-        //최상단 시스템 안내부
+        // 최상단 시스템 안내부
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("출퇴근관리시스템", fontFamily = BoldLabelFont)
-            Text("(주)A4AI", fontFamily = BoldLabelFont) //근로 장소 정보 받아올 곳
+            Text(attendanceInfo?.saupjangInfo ?: "(주)A4AI", fontFamily = BoldLabelFont)
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Divider(
+            color = InactiveColor2,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
 
         //근로자 정보란
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = InactiveColor2, shape = RoundedCornerShape(8.dp))
+                //.background(color = InactiveColor2, shape = RoundedCornerShape(8.dp))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 painter = painterResource(id = R.drawable.account_circle),
                 contentDescription = "image description",
-                contentScale = ContentScale.None
+                contentScale = ContentScale.None,
+                colorFilter = ColorFilter.tint(InactiveColor)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("근로자명", fontFamily = LabelFont, fontSize = 20.sp)
-                Row{
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Text(attendanceInfo?.korname ?: "근로자명", fontFamily = LabelFont, fontSize = 20.sp)
+                Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(4.dp)
                                 .background(color = InactiveColor, shape = CircleShape)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("부서명", fontFamily = ParagraphFont)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .background(color = InactiveColor, shape = CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("직책", fontFamily = ParagraphFont)
+                        Text(attendanceInfo?.deptInfo ?: "근로부서명", fontFamily = ParagraphFont)
                     }
                 }
             }
@@ -115,21 +92,31 @@ fun AttendanceScreenContent(modifier: Modifier = Modifier) {
                     .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Text("3인 1교대", color = MainColor, fontFamily = BoldLabelFont)
+                Text(
+                    attendanceInfo?.guentaenm ?: "근무 형태",
+                    color = SubColor,
+                    fontFamily = BoldLabelFont
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Divider(
+            color = InactiveColor2,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
 
         // 달력 타이틀
         val today = LocalDate.now()
         Text(
             "${today.year}년 ${today.monthValue}월",
             fontFamily = BoldLabelFont,
-            fontSize = 20.sp
+            fontSize = 24.sp,
+            modifier = Modifier.padding(horizontal = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // 근무 타입 선택 탭 (예: 주간/야간/비번)
         var selectedShift by remember { mutableStateOf(0) }
@@ -254,6 +241,8 @@ fun CalendarGrid() {
 @Composable
 fun AttendanceScreenPreview() {
     HmhrTheme {
-        AttendanceScreen()
+        val dummyViewModel = LoginViewModel()  // 임시 ViewModel 생성
+        AttendanceScreen(loginViewModel = dummyViewModel)
     }
 }
+

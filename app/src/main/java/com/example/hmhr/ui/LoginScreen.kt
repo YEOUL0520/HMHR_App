@@ -1,3 +1,5 @@
+package com.example.hmhr.ui
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,20 +13,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hmhr.R
 import com.example.hmhr.ui.MainScreen
 import com.example.hmhr.ui.theme.*
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.collectAsState
+import com.example.hmhr.viewmodel.*
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
+    // ViewModel 상태 관찰 (StateFlow 또는 LiveData 기반)
+    val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
+    val errorMessage by loginViewModel.errorMessage.collectAsState()
+
     var id by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isChecked by remember { mutableStateOf(true) }
-    var isLoggedIn by remember { mutableStateOf(false) }
 
     if (isLoggedIn) {
-        MainScreen()
+        MainScreen(modifier = Modifier, loginViewModel = loginViewModel)
     } else {
         Box(
             modifier = Modifier
@@ -69,7 +77,6 @@ fun LoginScreen() {
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // 아이디 입력창
                 OutlinedTextField(
                     value = id,
                     onValueChange = { id = it },
@@ -96,7 +103,6 @@ fun LoginScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 비밀번호 입력창
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -133,8 +139,7 @@ fun LoginScreen() {
 
                 Button(
                     onClick = {
-                        // 로그인 조건 없이 바로 메인 화면으로 이동
-                        isLoggedIn = true
+                        loginViewModel.login(id, password) //사용자 입력 값(id,password)을 login 함수의 인자로 전달
                     },
                     modifier = Modifier
                         .width(256.dp)
@@ -147,12 +152,17 @@ fun LoginScreen() {
                         style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = LabelFont)
                     )
                 }
+
+                //errorMessage가 존재할 경우 it으로 받아와서 해당 Message를 출력
+                errorMessage?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "⚠️ $it", color = Color.Red, fontFamily = BoldLabelFont)
+                }
             }
         }
     }
 }
 
-//체크박스 컴포넌트
 @Composable
 fun AutoLoginCheckbox(
     isChecked: Boolean,

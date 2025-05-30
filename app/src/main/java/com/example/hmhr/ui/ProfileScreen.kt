@@ -23,89 +23,71 @@ import com.example.hmhr.ui.theme.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Divider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.hmhr.viewmodel.LoginViewModel
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.graphics.ColorFilter
 
 
 @Composable
-fun ProfileScreen() {
-    var selectedTabIndex by remember { mutableStateOf(2) }
-
-    Scaffold(
-        bottomBar = { BottomNavigationBar(selectedTabIndex) { selectedTabIndex = it } }
-    ) { innerPadding ->
-        val modifier = Modifier
-            .fillMaxSize()
-            //.padding(innerPadding)
-            .padding(
-                WindowInsets.systemBars
-                    .only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
-                    .asPaddingValues()
-            )
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-
-        when (selectedTabIndex) {
-            0 -> AttendanceScreen()
-            1 -> MainScreen()
-            2 -> ProfileScreenContent(modifier)
-        }
-    }
+fun ProfileScreen(modifier: Modifier = Modifier, loginViewModel: LoginViewModel) {
+    ProfileScreenContent(modifier, loginViewModel)
 }
 
 @Composable
-fun ProfileScreenContent(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.Top,
-    ) {
+fun ProfileScreenContent(modifier: Modifier = Modifier, loginViewModel: LoginViewModel) {
+    val attendanceInfo by loginViewModel.attendanceInfo.collectAsState()
+    val guentaeList by loginViewModel.guentaeList.collectAsState()
+
+    // 화면 진입 시 fetch 호출
+    LaunchedEffect(Unit) {
+        loginViewModel.fetchGuentaeList()
+    }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.Top) {
+
         //최상단 시스템 안내부
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("출퇴근관리시스템", fontFamily = BoldLabelFont)
-            Text("(주)A4AI", fontFamily = BoldLabelFont) //근로 장소 정보 받아올 곳
+            Text(attendanceInfo?.saupjangInfo ?: "(주)A4AI", fontFamily = BoldLabelFont)
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        Divider(
+            color = InactiveColor2,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+        )
 
         //근로자 정보란
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = InactiveColor2, shape = RoundedCornerShape(8.dp))
+                //.background(color = InactiveColor2, shape = RoundedCornerShape(8.dp))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 painter = painterResource(id = R.drawable.account_circle),
                 contentDescription = "image description",
-                contentScale = ContentScale.None
+                contentScale = ContentScale.None,
+                colorFilter = ColorFilter.tint(InactiveColor)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("근로자명", fontFamily = LabelFont, fontSize = 20.sp)
-                Row{
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Text(attendanceInfo?.korname ?: "근로자명", fontFamily = LabelFont, fontSize = 20.sp)
+                Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(4.dp)
                                 .background(color = InactiveColor, shape = CircleShape)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("부서명", fontFamily = ParagraphFont)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .background(color = InactiveColor, shape = CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("직책", fontFamily = ParagraphFont)
+                        Text(attendanceInfo?.deptInfo ?: "근로부서명", fontFamily = ParagraphFont)
                     }
                 }
             }
@@ -117,55 +99,86 @@ fun ProfileScreenContent(modifier: Modifier = Modifier) {
                     .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Text("3인 1교대", color = MainColor, fontFamily = BoldLabelFont)
+                Text(
+                    attendanceInfo?.guentaenm ?: "근무 형태",
+                    color = SubColor,
+                    fontFamily = BoldLabelFont
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 출퇴근 정보 확인
-        Text("출근 정보 확인", fontFamily = BoldLabelFont, fontSize = 16.sp)
+        Divider(
+            color = InactiveColor2,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 더미 데이터 목록
-        val dummyData = listOf(
-            Pair("4월 18일", "출근 09시 01분"),
-            Pair("4월 18일", "퇴근 18시 01분"),
-            Pair("4월 17일", "출근 09시 00분"),
-            Pair("4월 17일", "퇴근 18시 00분"),
-            Pair("4월 16일", "출근 08시 59분"),
-            Pair("4월 16일", "퇴근 18시 03분")
-        )
+        // 출퇴근 정보 확인
+        Text("출근 정보 확인", fontFamily = BoldLabelFont, fontSize = 24.sp, modifier = Modifier.padding(horizontal = 8.dp))
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // guentaeList를 UI에 표시
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 80.dp) // 하단 바와 겹치지 않게
+                .padding(bottom = 80.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            dummyData.forEach { (date, status) ->
+            if (guentaeList.isNotEmpty()) {
+                // guentaeList 데이터 표시
+                guentaeList.forEach { item ->
+                    val dateFormatted = item.workdat?.let {
+                        "${it.substring(4, 6)}월 ${it.substring(6)}일"
+                    } ?: "날짜없음"
+
+                    val status = if (item.iotype == "i") {
+                        "출근 ${item.worktime}"
+                    } else {
+                        "퇴근 ${item.worktime}"
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = 8.dp)
+                            .background(InactiveColor2, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = dateFormatted, fontFamily = LabelFont)
+                            Text(
+                                text = status,
+                                fontFamily = LabelFont,
+                                color = if (status.contains("출근")) MainColor else InactiveColor
+                            )
+                        }
+                    }
+                }
+            } else {
+                // 🔥 데이터가 없을 경우 대체 박스
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(vertical = 4.dp, horizontal = 8.dp)
+                        .background(InactiveColor2, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = date, fontFamily = LabelFont)
-                        Text(
-                            text = status,
-                            fontFamily = LabelFont,
-                            color = if (status.contains("출근")) MainColor else Color.DarkGray
-                        )
-                    }
+                    Text(
+                        text = "이번 달 등록된 출근 정보가 없습니다.",
+                        fontFamily = LabelFont,
+                        color = InactiveColor
+                    )
                 }
             }
         }
+
     }
 }
 
@@ -174,6 +187,7 @@ fun ProfileScreenContent(modifier: Modifier = Modifier) {
 @Composable
 fun ProfileScreenPreview() {
     HmhrTheme {
-        ProfileScreen()
+        val dummyViewModel = LoginViewModel()  // 임시 ViewModel 생성
+        ProfileScreen(loginViewModel = dummyViewModel)
     }
 }

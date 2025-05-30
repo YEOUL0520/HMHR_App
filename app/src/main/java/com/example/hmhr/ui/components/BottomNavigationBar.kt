@@ -12,20 +12,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hmhr.R
 import com.example.hmhr.ui.theme.*
-import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun BottomNavigationBar(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
     Column {
         Divider(
-            color = InactiveColor,
+            color = InactiveColor2,
             thickness = 1.dp,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
         NavigationBar(
             containerColor = Color.Transparent,
             modifier = Modifier
-            .navigationBarsPadding()
         ) {
             NavigationBarItem(
                 selected = selectedIndex == 0,

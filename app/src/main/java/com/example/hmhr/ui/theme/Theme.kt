@@ -4,15 +4,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 private val LightColorScheme = lightColorScheme(
     primary = MainColor,
     secondary = SubColor,
     tertiary = SecondColor,
-    background = InactiveColor2,
+    background = Color.White,
     onPrimary = TextColor,
     onSecondary = TextColor,
     onBackground = TextColor,
