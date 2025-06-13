@@ -1,9 +1,11 @@
 package com.example.hmhr.network
 
+import android.content.Context
 import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONObject
 import android.util.Log
+import android.widget.Toast
 import okhttp3.MediaType.Companion.toMediaType
 import java.io.IOException
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -97,16 +99,30 @@ object LoginService {
                         if (jsonArray.length() > 0) {
                             val json = jsonArray.getJSONObject(0)
                             val info = AttendanceInfo(
-                                saupjangInfo = json.optString("get_saupjang_info(mhmr_insa_001_cmpcd)", ""),
+                                saupjangInfo = json.optString(
+                                    "get_saupjang_info(mhmr_insa_001_cmpcd)",
+                                    ""
+                                ),
                                 deptInfo = json.optString("get_dept_info(mhmr_insa_001_dept)", ""),
                                 attendCode = json.optString("mhmr_insa_001_attendcd", ""),
-                                guentaenm = if (json.optString("mhmr_attendance_001_guentaenm", "").length > 6){ json.optString("mhmr_attendance_001_guentaenm", "").substring(0, 6) }
-                                else{json.optString("mhmr_attendance_001_guentaenm", "")}, // 글자수 조건 넣어서 3인 2교대(주야비) 경우에 3인 2교대 까지만 표시
+                                guentaenm = if (json.optString(
+                                        "mhmr_attendance_001_guentaenm",
+                                        ""
+                                    ).length > 6
+                                ) {
+                                    json.optString("mhmr_attendance_001_guentaenm", "")
+                                        .substring(0, 6)
+                                } else {
+                                    json.optString("mhmr_attendance_001_guentaenm", "")
+                                }, // 글자수 조건 넣어서 3인 2교대(주야비) 경우에 3인 2교대 까지만 표시
                                 empno = json.optString("mhmr_insa_001_empno", ""),
                                 korname = json.optString("mhmr_insa_001_korname", ""),
                                 jikjong = json.optString("mhmr_insa_001_jikjong", ""),
                                 jikch = json.optString("mhmr_insa_001_jikch", ""),
-                                jikwi = json.optString("mhmr_insa_001_jikwi", "")
+                                jikwi = json.optString("mhmr_insa_001_jikwi", ""),
+                                appdat = json.optString("mhmr_insa_001_appdat", ""),
+                                wonappdat = json.optString("mhmr_insa_001_wonappdat", ""),
+                                tesadat = json.optString("mhmr_insa_001_tesadat", "")
                             )
                             onResult(true, info)
                         } else {
@@ -128,7 +144,7 @@ object LoginService {
         val client = OkHttpClient()
         val token = savedAccessToken ?: return onResult(false, null)
 
-        val json = JSONObject().apply{
+        val json = JSONObject().apply {
             put("Authorization", savedAccessToken)
         }
 
@@ -155,7 +171,8 @@ object LoginService {
                         val guentaelist = mutableListOf<GuentaeManage>()
 
                         val now = java.time.LocalDate.now()
-                        val currentYearMonth = now.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMM"))
+                        val currentYearMonth =
+                            now.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMM"))
 
                         for (i in 0 until jsonArray.length()) {
                             val json = jsonArray.getJSONObject(i)
@@ -181,6 +198,199 @@ object LoginService {
             }
         })
     }
+
+    fun registerBeacon(
+        uuid: String,
+        major: String,
+        minor: String,
+        distance: Double,
+        onResult: (Boolean, String?) -> Unit  // 콜백으로 결과만 반환
+    ) {
+        val client = OkHttpClient()
+
+        val json = """
+        {
+            "mhmr_attendance_006_uuid": "$uuid",
+            "mhmr_attendance_006_major": "$major",
+            "mhmr_attendance_006_minor": "$minor",
+            "mhmr_attendance_006_distance": $distance
+        }
+    """.trimIndent()
+
+        val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("http://192.168.0.104:8000/beacon/register")
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("HTTP", "서버 전송 실패", e)
+                onResult(false, "서버 연결 실패")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val bodyString = response.body?.string()
+                if (response.isSuccessful && bodyString != null) {
+                    Log.d("HTTP", "서버 응답: $bodyString")
+                    val isRecognized = bodyString.contains("인식")
+                    onResult(isRecognized, if (isRecognized) null else "비콘 미인식")
+                } else {
+                    Log.e("HTTP", "응답 실패 코드: ${response.code}")
+                    onResult(false, "응답 실패 코드: ${response.code}")
+                }
+            }
+        })
+    }
+
+    fun getGyodaeSetting(onResult: (Boolean, GyodaeSetting?) -> Unit) {
+        val client = OkHttpClient()
+        val token = savedAccessToken ?: return onResult(false, null)
+
+        // 빈 JSON 객체를 보냄
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val requestBody = JSONObject().toString().toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url("http://192.168.0.104:8000/GyodaeSetting")
+            .post(requestBody)
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("GyodaeSetting", "서버 연결 실패: ${e.message}")
+                onResult(false, null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val bodyString = response.body?.string()
+
+                Log.d("GyodaeSetting", "응답 내용: $bodyString")  // 이런 로그가 아예 안 뜸 → 호출이 안 된 것
+
+                if (response.isSuccessful && bodyString != null) {
+                    try {
+                        val jsonArray = JSONArray(bodyString)
+                        if (jsonArray.length() > 0) {
+                            val json = jsonArray.getJSONObject(0)
+
+                            val setting = GyodaeSetting(
+                                shiftworkcd = json.optString("mhmr_attendance_001_shiftworkcd", ""),
+                                i_time = json.optString("mhmr_attendance_001_i_time", ""),
+                                o_time = json.optString("mhmr_attendance_001_o_time", ""),
+                                satyn = json.optString("mhmr_attendance_001_satyn", ""),
+                                sat_i_time = json.optString("mhmr_attendance_001_sat_i_time", ""),
+                                sat_o_time = json.optString("mhmr_attendance_001_sat_o_time", ""),
+                                holiyn = json.optString("mhmr_attendance_001_holiyn", ""),
+                                hol_i_time = json.optString("mhmr_attendance_001_hol_i_time", ""),
+                                hol_o_time = json.optString("mhmr_attendance_001_hol_o_time", ""),
+                                longtermyn = json.optString("mhmr_attendance_001_longtermyn", ""),
+                                longtermsp = json.optString("mhmr_attendance_001_longtermsp", "")
+                                    ?: "",
+                                longtermoffset = json.optString(
+                                    "mhmr_attendance_001_longtermoffset",
+                                    ""
+                                ) ?: "",
+                                pucd = json.optString("mhmr_attendance_001_pucd", "") ?: "",
+                                daeguenyn = json.optString("mhmr_attendance_001_daeguenyn", ""),
+                                overtimeyn = json.optString("mhmr_attendance_001_overtimeyn", ""),
+                                shiftcd = json.optString("mhmr_attendance_002_shiftcd", ""),
+                                shiftgubuncd1 = json.optString(
+                                    "mhmr_attendance_002_shiftgubuncd1",
+                                    ""
+                                ),
+                                i_time_1 = json.optString("mhmr_attendance_002_i_time_1", ""),
+                                o_time_1 = json.optString("mhmr_attendance_002_o_time_1", ""),
+                                shiftgubuncd2 = json.optString(
+                                    "mhmr_attendance_002_shiftgubuncd2",
+                                    ""
+                                ),
+                                i_time_2 = json.optString("mhmr_attendance_002_i_time_2", ""),
+                                o_time_2 = json.optString("mhmr_attendance_002_o_time_2", ""),
+                                shiftgubuncd3 = json.optString(
+                                    "mhmr_attendance_002_shiftgubuncd3",
+                                    ""
+                                ),
+                                i_time_3 = json.optString("mhmr_attendance_002_i_time_3", ""),
+                                o_time_3 = json.optString("mhmr_attendance_002_o_time_3", ""),
+                                shiftgubuncd4 = json.optString(
+                                    "mhmr_attendance_002_shiftgubuncd4",
+                                    ""
+                                ) ?: "",
+                                i_time_4 = json.optString("mhmr_attendance_002_i_time_4", "") ?: "",
+                                o_time_4 = json.optString("mhmr_attendance_002_o_time_4", "") ?: "",
+                                shiftgubuncd5 = json.optString(
+                                    "mhmr_attendance_002_shiftgubuncd5",
+                                    ""
+                                ) ?: "",
+                                i_time_5 = json.optString("mhmr_attendance_002_i_time_5", "") ?: "",
+                                o_time_5 = json.optString("mhmr_attendance_002_o_time_5", "") ?: ""
+                            )
+                            onResult(true, setting)
+                        } else {
+                            onResult(false, null)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("GyodaeSetting", "응답 파싱 실패: ${e.message}")
+                        onResult(false, null)
+                    }
+                } else {
+                    Log.e("GyodaeSetting", "응답 실패 또는 데이터 없음")
+                    onResult(false, null)
+                }
+            }
+        })
+    }
+
+    fun sendAttendanceRecord(
+        empno: String,
+        dept: String,
+        cmpcd: String,
+        workdat: String,
+        worktime: String,
+        iotype: String,
+        verdicttime: String, // 근태 판별 완료한 값 (지각인지, 조퇴인지...)
+        guentae: String,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        val client = OkHttpClient()
+        val token = savedAccessToken ?: return onResult(false, "토큰 없음")
+
+        val json = JSONObject().apply {
+            put("mhmr_attendance_003_empno", empno)
+            put("mhmr_attendance_003_dept", dept)
+            put("mhmr_attendance_003_cmpcd", cmpcd)
+            put("mhmr_attendance_003_workdat", workdat)
+            put("mhmr_attendance_003_worktime", worktime)
+            put("mhmr_attendance_003_iotype", iotype)
+            put("mhmr_attendance_003_verdicttime", verdicttime)  // ✅ 외부 전달값 사용
+            put("mhmr_attendance_003_guentae", guentae)
+        }
+
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val requestBody = json.toString().toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url("http://192.168.0.104:8000/attendance/manage")
+            .post(requestBody)
+            .addHeader("Authorization", "Bearer $token")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                onResult(false, "서버 연결 실패: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    onResult(true, null)
+                } else {
+                    onResult(false, "응답 실패: ${response.code}")
+                }
+            }
+        })
+    }
+
 }
 
 data class AttendanceInfo(
@@ -192,7 +402,10 @@ data class AttendanceInfo(
     val korname: String,
     val jikjong: String,
     val jikch: String,
-    val jikwi: String
+    val jikwi: String,
+    val appdat: String,
+    val wonappdat: String,
+    val tesadat: String
 )
 
 data class GuentaeManage(
@@ -208,7 +421,22 @@ data class BeaconRegister(
     val distance: Double
 )
 
-data class GodaeSetting(
+data class GyodaeSetting(
+    val shiftworkcd: String,
+    val i_time: String,
+    val o_time: String,
+    val satyn: String,
+    val sat_i_time: String,
+    val sat_o_time: String,
+    val holiyn: String,
+    val hol_i_time: String,
+    val hol_o_time: String,
+    val longtermyn: String,
+    val longtermsp: String,
+    val longtermoffset: String,
+    val pucd: String,
+    val daeguenyn: String,
+    val overtimeyn: String,
     val shiftcd: String,
     val shiftgubuncd1: String,
     val i_time_1: String,

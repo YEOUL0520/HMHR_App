@@ -1,7 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- beacon 사용 관련 permission -->
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- Android 12+ 시 요구되는 permission -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- BLE 기능 명시 -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -26,6 +39,10 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <!-- ✅ AltBeacon 필수 구성 -->
+        <service android:name="org.altbeacon.beacon.service.BeaconService" />
+        <service android:name="org.altbeacon.beacon.BeaconIntentProcessor" />
 
     </application>
 

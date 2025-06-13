@@ -13,17 +13,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import com.example.hmhr.R
-import com.example.hmhr.ui.components.BottomNavigationBar
 import com.example.hmhr.ui.theme.*
 import com.example.hmhr.viewmodel.LoginViewModel
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.TextStyle
-import java.util.*
+import com.example.hmhr.util.ShiftCalculator
+import com.example.hmhr.util.ShiftCategoryUtil
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun AttendanceScreen(modifier: Modifier = Modifier, loginViewModel: LoginViewModel) {
@@ -32,14 +33,18 @@ fun AttendanceScreen(modifier: Modifier = Modifier, loginViewModel: LoginViewMod
 
 @Composable
 fun AttendanceScreenContent(modifier: Modifier = Modifier, loginViewModel: LoginViewModel) {
-
+    val today = LocalDate.now()
+    val monthlyShiftMap by loginViewModel.monthlyShiftMap.collectAsState()
     val attendanceInfo by loginViewModel.attendanceInfo.collectAsState()
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.Top,
-    ) {
-        // 최상단 시스템 안내부
+    var selectedShift by remember { mutableStateOf("전체") }
+    val shiftTypes = listOf("전체", "주간", "야간", "비번")
+
+    LaunchedEffect(Unit) {
+        loginViewModel.calculateMonthlyShiftMap(today.year, today.monthValue)
+    }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.Top) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -48,168 +53,98 @@ fun AttendanceScreenContent(modifier: Modifier = Modifier, loginViewModel: Login
             Text(attendanceInfo?.saupjangInfo ?: "(주)A4AI", fontFamily = BoldLabelFont)
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Divider(
-            color = InactiveColor2,
-            thickness = 1.dp,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
-        )
+        Divider(color = InactiveColor2, thickness = 1.dp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp))
 
-
-        //근로자 정보란
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                //.background(color = InactiveColor2, shape = RoundedCornerShape(8.dp))
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(id = R.drawable.account_circle),
-                contentDescription = "image description",
+                contentDescription = null,
                 contentScale = ContentScale.None,
                 colorFilter = ColorFilter.tint(InactiveColor)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(attendanceInfo?.korname ?: "근로자명", fontFamily = LabelFont, fontSize = 20.sp)
-                Row {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .background(color = InactiveColor, shape = CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(attendanceInfo?.deptInfo ?: "근로부서명", fontFamily = ParagraphFont)
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(4.dp).background(InactiveColor, CircleShape))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(attendanceInfo?.deptInfo ?: "근로부서명", fontFamily = ParagraphFont)
                 }
             }
             Box(
-                modifier = Modifier
-                    .size(80.dp, 32.dp)
-                    .border(2.dp, SubColor, RoundedCornerShape(8.dp))
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White),
+                modifier = Modifier.size(80.dp, 32.dp).border(2.dp, SubColor, RoundedCornerShape(8.dp)).clip(RoundedCornerShape(8.dp)).background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    attendanceInfo?.guentaenm ?: "근무 형태",
-                    color = SubColor,
-                    fontFamily = BoldLabelFont
-                )
+                Text(attendanceInfo?.guentaenm ?: "근무 형태", color = SubColor, fontFamily = BoldLabelFont)
             }
         }
 
-        Divider(
-            color = InactiveColor2,
-            thickness = 1.dp,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
-        )
+        Divider(color = InactiveColor2, thickness = 1.dp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("${today.year}년 ${today.monthValue}월", fontFamily = BoldLabelFont, fontSize = 24.sp, modifier = Modifier.padding(horizontal = 8.dp))
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 달력 타이틀
-        val today = LocalDate.now()
-        Text(
-            "${today.year}년 ${today.monthValue}월",
-            fontFamily = BoldLabelFont,
-            fontSize = 24.sp,
-            modifier = Modifier.padding(horizontal = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 근무 타입 선택 탭 (예: 주간/야간/비번)
-        var selectedShift by remember { mutableStateOf(0) }
-        val shiftTypes = listOf("주간", "야간", "비번")
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.Start
         ) {
-            shiftTypes.forEachIndexed { index, type ->
-                val isSelected = selectedShift == index
+            shiftTypes.forEach { type ->
+                val isSelected = selectedShift == type
                 Box(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                    modifier = Modifier.padding(end = 8.dp).clip(RoundedCornerShape(4.dp))
                         .background(if (isSelected) MainColor else Color.LightGray)
-                        .clickable { selectedShift = index }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable { selectedShift = type }.padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text(
-                        text = type,
-                        color = if (isSelected) Color.White else Color.Black,
-                        fontFamily = BoldLabelFont,
-                        fontSize = 14.sp
-                    )
+                    Text(text = type, color = if (isSelected) Color.White else Color.Black, fontFamily = BoldLabelFont, fontSize = 14.sp)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-
-        // 달력
-        CalendarGrid()
+        CalendarGrid(shiftMap = monthlyShiftMap, selectedFilter = selectedShift)
     }
 }
 
 @Composable
-fun CalendarGrid() {
+fun CalendarGrid(shiftMap: Map<LocalDate, ShiftCalculator.ShiftInfo>, selectedFilter: String) {
     val today = LocalDate.now()
     val yearMonth = YearMonth.of(today.year, today.month)
     val firstDayOfMonth = yearMonth.atDay(1)
     val daysInMonth = yearMonth.lengthOfMonth()
-    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7 // 일요일 = 0
+    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
 
     val dates = buildList<LocalDate?> {
         repeat(firstDayOfWeek) { add(null) }
-        for (day in 1..daysInMonth) {
-            add(yearMonth.atDay(day))
-        }
-        while (size % 7 != 0) add(null) // 나머지 채우기
+        for (day in 1..daysInMonth) add(yearMonth.atDay(day))
+        while (size % 7 != 0) add(null)
     }
 
     val weeks = dates.chunked(7)
 
     Column {
-        // 요일 표시
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             listOf("일", "월", "화", "수", "목", "금", "토").forEach {
-                Text(
-                    text = it,
-                    modifier = Modifier.weight(1f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    fontFamily = BoldLabelFont
-                )
+                Text(text = it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontFamily = BoldLabelFont)
             }
         }
-
         Spacer(modifier = Modifier.height(4.dp))
 
-        // 날짜 셀
         weeks.forEachIndexed { index, week ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 week.forEach { date ->
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .padding(2.dp),
+                        modifier = Modifier.weight(1f).aspectRatio(1f).padding(2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         if (date != null) {
+                            val shift = shiftMap[date]
+                            val category = ShiftCategoryUtil.classify(shift?.name)
+                            val color = ShiftCategoryUtil.colorFor(category)
+
                             Column(
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                verticalArrangement = Arrangement.Top
                             ) {
                                 Text(
                                     text = "${date.dayOfMonth}",
@@ -225,17 +160,29 @@ fun CalendarGrid() {
                                             .background(MainColor)
                                     )
                                 }
+                                Spacer(modifier = Modifier.height(4.dp)) // 👈 간격 추가해도 좋음
+
+                                // 근무 형태 (필터 조건 만족 시만 표시)
+                                if (shift != null && (selectedFilter == "전체" || shift.name == selectedFilter)) {
+                                    Text(
+                                        text = shift.name,
+                                        fontSize = 10.sp,
+                                        fontFamily = ParagraphFont,
+                                        color = color
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
             if (index < weeks.lastIndex) {
-                Spacer(modifier = Modifier.height(4.dp)) // 줄 간 간격 추가
+                Spacer(modifier = Modifier.height(4.dp))
             }
         }
     }
 }
+
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable
